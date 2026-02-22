@@ -2,7 +2,7 @@
 main.py — Главный цикл голосового ассистента
 """
 
-from stt import listen
+from stt import listen, extract_wake_command
 from tts import speak
 from parser import parse_intent, extract_city, extract_math_expression, extract_reminder_params
 from skills.time_skill import get_time, get_date
@@ -44,16 +44,35 @@ def process_query(text: str) -> str:
 
 
 def main():
-    speak("Голосовой ассистент запущен. Слушаю вас!")
+    speak("Голосовой ассистент запущен. Скажите 'GVoice' для активации!")
 
     while True:
         try:
-            text = listen()           # 1. Записываем и распознаём
+            print("⏳ Ожидание wake word... (скажите 'GVoice, [команда]')")
+            text = listen()
+
             if not text:
                 continue
 
-            response = process_query(text)  # 2. Обрабатываем
-            speak(response)                 # 3. Озвучиваем
+            activated, command = extract_wake_command(text)
+
+            if not activated:
+                print("💤 Wake word не обнаружен, продолжаю слушать...")
+                continue
+
+            print(f"✅ Активирован! Команда: '{command}'")
+
+            # Если пользователь сказал только "GVoice" без команды — попросить уточнить
+            if not command:
+                speak("Слушаю вас!")
+                text = listen()
+                command = text
+
+            if not command:
+                continue
+
+            response = process_query(command)   # 2. Обрабатываем
+            speak(response)                     # 3. Озвучиваем
 
         except KeyboardInterrupt:
             speak("До свидания!")
