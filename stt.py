@@ -1,6 +1,6 @@
 """
 stt.py — Speech-to-Text
-Запись с микрофона и распознавание речи через Whisper API (Groq)
+Непрерывное слушание микрофона с VAD и распознавание речи через Whisper API (Groq)
 """
 
 import sounddevice as sd
@@ -12,54 +12,63 @@ from groq import Groq
 
 client = Groq(api_key=os.environ.get("GROQ_API"))
 
-SAMPLE_RATE = 16000   # Гц — стандарт для распознавания речи
-DURATION = 5          # Секунд записи
-CHANNELS = 1          # Моно
+SAMPLE_RATE = 16000       # Гц — стандарт для распознавания речи
+CHANNELS = 1              # Моно
+CHUNK_DURATION = 0.1      # Длина одного чанка в секундах (100 мс)
+CHUNK_SIZE = int(SAMPLE_RATE * CHUNK_DURATION)
+SILENCE_THRESHOLD = 500   # Порог RMS: ниже — тишина, выше — речь
+SILENCE_TIMEOUT = 1.5     # Секунд тишины для завершения записи
+MAX_DURATION = 10         # Максимальная длина одной записи в секундах
 
-# Варианты транскрипции wake word "GVoice" через Whisper
+# Варианты транскрипции wake word "Voicebot" через Whisper
 WAKE_PHRASES = [
-    "gvoice",
-    "g voice",
-    "джи войс",
-    "джейвойс",
-    "джи-войс",
-    "gвойс",
+    "voicebot",
+    "войсбот",
+    "voice bot",
+    "войс бот",
+    "voiceбот",
 ]
 
 
-def extract_wake_command(text: str) -> tuple[bool, str]:
+def record_until_silence() -> str | None:
     """
-    Проверяет наличие wake word в тексте.
-    Возвращает (True, команда) если wake word найден, иначе (False, "").
+    Слушает микрофон непрерывно.
+    Начинает запись при обнаружении речи (RMS > SILENCE_THRESHOLD).
+    Останавливается после SILENCE_TIMEOUT секунд тишины.
+    Возвращает путь к WAV файлу или None если ничего не записано.
     """
-    lower = text.lower().strip()
+    audio_chunks = []
+    silent_chunks = 0
+    speaking = False
+    silence_chunks_limit = int(SILENCE_TIMEOUT / CHUNK_DURATION)
+    max_chunks = int(MAX_DURATION / CHUNK_DURATION)
 
-    for phrase in WAKE_PHRASES:
-        if phrase in lower:
-            idx = lower.find(phrase)
-            after = text[idx + len(phrase):].strip()
-            after = after.lstrip(",.!? ")
-            return True, after
+    with sd.InputStream(samplerate=SAMPLE_RATE, channels=CHANNELS, dtype=np.int16) as stream:
+        while True:
+            chunk, _ = stream.read(CHUNK_SIZE)
+            rms = float(np.sqrt(np.mean(chunk.astype(np.float32) ** 2)))
 
-    return False, ""
+            if rms > SILENCE_THRESHOLD:
+                if not speaking:
+                    print("🎤 Речь обнаружена...")
+                    speaking = True
+                silent_chunks = 0
+                audio_chunks.append(chunk.copy())
 
+            elif speaking:
+                silent_chunks += 1
+                audio_chunks.append(chunk.copy())
+                if silent_chunks >= silence_chunks_limit:
+                    break
 
-def record_audio(duration: int = DURATION) -> str:
-    """
-    Записывает аудио с микрофона.
-    Возвращает путь к временному .wav файлу.
-    """
-    print(f"🎤 Говорите... ({duration} сек)")
+            if speaking and len(audio_chunks) >= max_chunks:
+                print("⏱ Достигнут лимит записи")
+                break
 
-    audio = sd.rec(
-        int(duration * SAMPLE_RATE),
-        samplerate=SAMPLE_RATE,
-        channels=CHANNELS,
-        dtype=np.int16
-    )
-    sd.wait()  # Ждём окончания записи
+    if not audio_chunks:
+        return None
 
-    # Сохраняем во временный файл
+    audio = np.concatenate(audio_chunks)
     tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
     with wave.open(tmp.name, "wb") as wf:
         wf.setnchannels(CHANNELS)
@@ -89,10 +98,31 @@ def recognize_speech(audio_path: str) -> str:
 
 def listen() -> str:
     """
-    Удобная функция: записывает и сразу распознаёт.
-    Возвращает текст того, что сказал пользователь.
+    Непрерывно слушает микрофон до конца фразы, затем распознаёт речь.
+    Возвращает распознанный текст.
     """
-    audio_path = record_audio()
-    text = recognize_speech(audio_path)
-    print(f"📝 Вы сказали: {text}")
-    return text
+    while True:
+        audio_path = record_until_silence()
+        if audio_path is None:
+            continue
+        text = recognize_speech(audio_path)
+        if text:
+            print(f"📝 Вы сказали: {text}")
+            return text
+
+
+def extract_wake_command(text: str) -> tuple[bool, str]:
+    """
+    Проверяет наличие wake word в тексте.
+    Возвращает (True, команда) если wake word найден, иначе (False, "").
+    """
+    lower = text.lower().strip()
+
+    for phrase in WAKE_PHRASES:
+        if phrase in lower:
+            idx = lower.find(phrase)
+            after = text[idx + len(phrase):].strip()
+            after = after.lstrip(",.!? ")
+            return True, after
+
+    return False, ""
