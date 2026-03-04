@@ -2,13 +2,11 @@
 main.py — Главный цикл голосового ассистента
 """
 
-from stt import listen, extract_wake_command
+from stt import listen
 from tts import speak
-from parser import parse_intent, extract_city, extract_math_expression, extract_reminder_params
+from parser import parse_intent, extract_city
 from skills.time_skill import get_time, get_date
 from skills.weather import get_weather
-from skills.calculator import calculate
-from skills.reminder import set_reminder
 
 
 def process_query(text: str) -> str:
@@ -31,48 +29,23 @@ def process_query(text: str) -> str:
         city = extract_city(text)
         return get_weather(city)
 
-    elif intent == "calculate":
-        expression = extract_math_expression(text)
-        return calculate(expression)
-
-    elif intent == "reminder":
-        seconds, message = extract_reminder_params(text)
-        return set_reminder(seconds, message, callback=speak)
-
     else:
-        return "Извините, я не понял запрос. Попробуйте ещё раз."
+        return "Не понял запрос. Попробуйте ещё раз."
 
 
 def main():
-    speak("Голосовой ассистент запущен. Скажите 'GVoice' для активации!")
+    speak("Голосовой ассистент запущен. Слушаю вас!")
 
     while True:
         try:
-            print("⏳ Ожидание wake word... (скажите 'GVoice, [команда]')")
+            print("👂 Слушаю...")
             text = listen()
 
             if not text:
                 continue
 
-            activated, command = extract_wake_command(text)
-
-            if not activated:
-                print("💤 Wake word не обнаружен, продолжаю слушать...")
-                continue
-
-            print(f"✅ Активирован! Команда: '{command}'")
-
-            # Если пользователь сказал только "GVoice" без команды — попросить уточнить
-            if not command:
-                speak("Слушаю вас!")
-                text = listen()
-                command = text
-
-            if not command:
-                continue
-
-            response = process_query(command)   # 2. Обрабатываем
-            speak(response)                     # 3. Озвучиваем
+            response = process_query(text)
+            speak(response)
 
         except KeyboardInterrupt:
             speak("До свидания!")
