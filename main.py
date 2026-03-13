@@ -1,7 +1,3 @@
-"""
-main.py — Главный цикл голосового ассистента
-"""
-
 from stt import listen
 from tts import speak
 from parser import parse_intent, extract_city
@@ -9,15 +5,12 @@ from skills.time_skill import get_time, get_date
 from skills.weather import get_weather
 
 
-def process_query(text: str) -> str:
-    """
-    Определяет intent и возвращает ответ.
-    """
+def process_query(text):
     intent = parse_intent(text)
     print(f"🧠 Intent: {intent}")
 
     if intent == "greeting":
-        return "Привет! Я ваш голосовой ассистент. Чем могу помочь?"
+        return "Hello! I am your voice assistant. How can I help you?"
 
     elif intent == "time":
         return get_time()
@@ -30,29 +23,21 @@ def process_query(text: str) -> str:
         return get_weather(city)
 
     else:
-        return "Не понял запрос. Попробуйте ещё раз."
+        return "I did not understand the request. Please try again."
 
 
 def main():
-    speak("Голосовой ассистент запущен. Слушаю вас!")
+    speak("Voice assistant started. Listening.")
 
     while True:
-        try:
-            print("👂 Слушаю...")
-            text = listen()
+        print("👂 Listening...")
+        text = listen()
 
-            if not text:
-                continue
+        if not text:
+            continue
 
-            response = process_query(text)
-            speak(response)
-
-        except KeyboardInterrupt:
-            speak("До свидания!")
-            break
-        except Exception as e:
-            print(f"Ошибка: {e}")
-            speak("Произошла ошибка. Попробуйте ещё раз.")
+        response = process_query(text)
+        speak(response)
 
 
 if __name__ == "__main__":

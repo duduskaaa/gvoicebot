@@ -1,41 +1,28 @@
-"""
-parser.py — Определение намерения пользователя (intent)
-и извлечение параметров из текста
-"""
-
-import re
 
 
-# Ключевые слова для каждого intent
 INTENTS = {
-    "greeting": ["привет", "здравствуй", "добрый день", "добрый вечер", "хай", "салют"],
-    "time": ["время", "который час", "сколько времени", "часы"],
-    "date": ["дата", "какое сегодня", "какой день", "число"],
-    "weather": ["погода", "температура", "на улице", "за окном"],
+    "greeting": ["hello", "hi", "good morning", "good evening", "hey", "greetings"],
+    "time": ["time", "what time", "current time", "clock"],
+    "date": ["date", "what day", "today", "what is today"],
+    "weather": ["weather", "temperature", "outside"],
 }
 
 
-def parse_intent(text: str) -> str:
-    """
-    Определяет намерение пользователя по ключевым словам.
-    Возвращает строку с названием intent или 'unknown'.
-    """
-    text_lower = text.lower()
+def parse_intent(text):
+    text = text.lower()
 
     for intent, keywords in INTENTS.items():
         for keyword in keywords:
-            if keyword in text_lower:
+            if keyword in text:
                 return intent
 
     return "unknown"
 
 
-def extract_city(text: str) -> str:
-    """
-    Извлекает название города из текста.
-    Пример: "погода в Алматы" → "Алматы"
-    """
-    match = re.search(r"\bв\s+([А-ЯЁ][а-яё]+)", text)
-    if match:
-        return match.group(1)
-    return "Алматы"  # Город по умолчанию
+def extract_city(text):
+    words = text.split()
+    if "in" in words:
+        idx = words.index("in")
+        if idx + 1 < len(words):
+            return words[idx + 1].capitalize()
+    return "Almaty"

@@ -1,12 +1,8 @@
-"""
-skills/weather.py — Заглушка погоды (Этап 1)
-"""
-
 WEATHER_STUB = {
-    "алматы": "В Алматы сейчас около 8 градусов, переменная облачность.",
-    "астана": "В Астане сейчас около -3 градусов, небольшой снег.",
+    "almaty": "In Almaty it is around 8 degrees, partly cloudy.",
+    "astana": "In Astana it is around -3 degrees, light snow.",
 }
 
 
-def get_weather(city: str = "Алматы") -> str:
-    return WEATHER_STUB.get(city.lower(), f"В {city} данные о погоде недоступны.")
+def get_weather(city="Almaty"):
+    return WEATHER_STUB.get(city.lower(), f"Weather data for {city} is not available.")
