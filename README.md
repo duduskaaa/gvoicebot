@@ -1,369 +1,151 @@
-# GVoiceBot
+# Table of Contents
 
-Голосовой ассистент на русском языке с поддержкой распознавания речи и синтеза голоса.
-
-## Содержание
-
-- [Описание](#описание)
-- [Возможности](#возможности)
-- [Архитектура](#архитектура)
-- [Структура проекта](#структура-проекта)
-- [Установка](#установка)
-- [Настройка](#настройка)
-- [Запуск](#запуск)
-- [Модули](#модули)
-  - [main.py](#mainpy)
-  - [stt.py](#sttpy)
-  - [tts.py](#ttspy)
-  - [parser.py](#parserpy)
-  - [skills/time\_skill.py](#skillstime_skillpy)
-  - [skills/weather.py](#skillsweatherpy)
-  - [skills/calculator.py](#skillscalculatorpy)
-  - [skills/reminder.py](#skillsreminderpy)
-- [Поток работы](#поток-работы)
-- [Навыки (Skills)](#навыки-skills)
-- [Зависимости](#зависимости)
+- [1. Introduction](#1-introduction)
+- [2. System Architecture](#2-system-architecture)
+- [3. Module Descriptions](#3-module-descriptions)
+  - [3.1. main.py - Main Loop](#31-mainpy---main-loop)
+  - [3.2. stt.py - Speech Recognition](#32-sttpy---speech-recognition)
+  - [3.3. tts.py - Speech Synthesis](#33-ttspy---speech-synthesis)
+  - [3.4. parser.py - Intent Classification](#34-parserpy---intent-classification)
+  - [3.5. skills/ - Assistant Skills](#35-skills---assistant-skills)
+- [4. Environment Variables](#4-environment-variables)
+- [5. Installation and Launch](#5-installation-and-launch)
+- [6. References](#6-references)
 
 ---
 
-## Описание
+## 1. Introduction
 
-GVoiceBot — голосовой ассистент, который слушает команды пользователя через микрофон, распознаёт речь с помощью Whisper через Groq API, определяет намерение (intent) по ключевым словам и выполняет соответствующий навык. Ответ произносится вслух через edge-tts с русским голосом.
+GVoiceBot is a voice assistant written in Python, designed for natural language voice control. The system captures voice commands from the user, performs speech recognition, classifies the intent, and returns a corresponding spoken response.
 
-## Возможности
+The project targets Russian-speaking users and supports commands for querying the current time, date, weather, and greeting interactions. The architecture follows a separation-of-concerns principle: each module has a single well-defined responsibility.
 
-| Команда | Пример фразы | Что делает |
-|---|---|---|
-| Приветствие | "Привет", "Здравствуй" | Отвечает приветствием |
-| Время | "Который час?", "Сколько времени?" | Называет текущее время |
-| Дата | "Какое сегодня число?" | Называет дату и день недели |
-| Погода | "Какая погода в Казани?" | Даёт прогноз через OpenWeatherMap |
-| Калькулятор | "Сколько будет 25 плюс 17?" | Вычисляет выражение |
-| Напоминание | "Напомни через 5 минут позвонить маме" | Устанавливает таймер |
+The activation keyword (wake word) is "Voicebot". The system waits for the wake word before each command, which prevents false activations in background listening mode.
 
-## Архитектура
+---
 
-```
-Микрофон
-    │
-    ▼
-[stt.py] ──► sounddevice (запись WAV)
-    │
-    ▼
-Groq API / Whisper Large V3 (распознавание речи)
-    │
-    ▼
-[parser.py] ──► определение intent по ключевым словам
-                извлечение параметров (город, выражение, время)
-    │
-    ▼
-[main.py] ──► маршрутизация к навыку
-    │
-    ├──► [skills/time_skill.py]
-    ├──► [skills/weather.py] ──► OpenWeatherMap API
-    ├──► [skills/calculator.py]
-    └──► [skills/reminder.py] ──► threading.Timer
-    │
-    ▼
-[tts.py] ──► edge-tts (синтез MP3)
-    │
-    ▼
-pygame (воспроизведение)
-    │
-    ▼
-Динамик
-```
+## 2. System Architecture
 
-## Структура проекта
+The system is composed of the following layers:
+
+- **Input layer (STT):** Microphone recording -> speech recognition via the Whisper API (Groq).
+- **Processing layer (Parser):** Text classification by keywords -> intent determination.
+- **Skills layer:** Business logic for each intent: time, date, weather.
+- **Output layer (TTS):** Speech synthesis via edge-tts (Microsoft Neural Voices) -> playback via pygame.
+
+Data flow:
 
 ```
-gvoicebot/
-├── main.py              # Точка входа, главный цикл, маршрутизация
-├── stt.py               # Speech-to-Text: запись и распознавание речи
-├── tts.py               # Text-to-Speech: синтез и воспроизведение
-├── parser.py            # Определение intent, извлечение параметров
-├── requirements.txt     # Зависимости Python
-├── README.md            # Документация
-└── skills/
-    ├── time_skill.py    # Навык: время и дата
-    ├── weather.py       # Навык: погода
-    ├── calculator.py    # Навык: калькулятор
-    └── reminder.py      # Навык: напоминания
+Microphone -> [STT] -> Text -> [Parser] -> Intent -> [Skill] -> Response -> [TTS] -> Speaker
 ```
 
-## Установка
+---
 
-**Требования:** Python 3.10+
+## 3. Module Descriptions
+
+### 3.1. main.py - Main Loop
+
+`main.py` implements the main control loop of the assistant. The `main()` function starts the assistant, plays a greeting phrase, and enters an infinite command-processing loop.
+
+The `process_query(text)` function receives the recognized text, calls `parse_intent()` to determine the intent, and dispatches execution to the corresponding skill. If the intent is unknown, it returns the phrase "I did not understand the request. Please try again."
+
+Supported intents:
+
+- `greeting` - greet the user
+- `time` - query the current time
+- `date` - query the current date
+- `weather` - query the weather with an optional city
+
+### 3.2. stt.py - Speech Recognition
+
+The `stt.py` module is responsible for capturing audio from the microphone and transcribing it to text. Recording is performed using the sounddevice library at a sample rate of 16,000 Hz (the standard for ASR systems), in mono mode.
+
+`record_audio()` records a fixed 5-second segment and saves it as a 16-bit WAV file in the system temp directory. `recognize_speech()` sends the file to the Groq Whisper API (model: whisper-large-v3, language: ru) and returns the transcribed text. The temporary file is deleted after successful recognition.
+
+`listen()` combines recording and recognition into a single call and is used in the main loop.
+
+### 3.3. tts.py - Speech Synthesis
+
+The `tts.py` module synthesizes speech from text and plays it through the device audio output. Synthesis is performed via the edge-tts library, which uses Microsoft Neural TTS and does not require an API key.
+
+Default voice: `ru-RU-SvetlanaNeural` (Russian female). An alternative is `ru-RU-DmitryNeural` (Russian male).
+
+`speak(text)` saves the synthesized MP3 to a temporary file, loads it via `pygame.mixer`, and plays it synchronously — the function blocks until playback finishes. The temporary file is deleted afterwards.
+
+Because `edge_tts.Communicate.save()` is a coroutine (`async def`), `asyncio.run()` is used to call it from synchronous code.
+
+### 3.4. parser.py - Intent Classification
+
+`parser.py` implements rule-based text classification. The `INTENTS` dictionary maps each intent name to a list of trigger keywords. `parse_intent(text)` lowercases the input and checks for substring matches.
+
+Keywords by intent:
+
+- `greeting`: hello, hi, good morning, good evening, hey
+- `time`: time, what time, what is the time, clock
+- `date`: date, what day, today, what is today
+- `weather`: weather, temperature, outside
+
+`extract_city(text)` extracts a city name from phrases such as "weather in Almaty" using a regular expression. If no match is found, the default city Almaty is returned.
+
+### 3.5. skills/ - Assistant Skills
+
+The `skills/` directory contains the implementation of each skill. At the current stage, skills are implemented as stubs.
+
+- `time_skill.py`: `get_time()` returns the current time; `get_date()` returns the current date. In the final version, the `datetime` module is used.
+- `weather.py`: `get_weather(city)` returns weather data. A stub dictionary covers Almaty and Astana. In the final version it queries the OpenWeatherMap API.
+
+---
+
+## 4. Environment Variables
+
+The following environment variable must be set for the assistant to work:
+
+- `GROQ_API`: API key for the Groq service to access the Whisper model. Obtained at console.groq.com after registration. Used in `stt.py` when initializing the Groq client.
+
+Export the variable before running the assistant:
 
 ```bash
-# 1. Клонировать репозиторий
-git clone <url>
-cd gvoicebot
+export GROQ_API="your_groq_key"
+```
 
-# 2. Установить зависимости
+---
+
+## 5. Installation and Launch
+
+Requirements: Python 3.10 or higher.
+
+Install dependencies:
+
+```bash
 pip install -r requirements.txt
 ```
 
-## Настройка
+Project dependencies (`requirements.txt`):
 
-Установить переменные окружения с API-ключами:
+- groq
+- edge-tts
+- pygame
+- sounddevice
+- numpy
+- requests
 
-```bash
-export GROQ_API="ваш_groq_api_key"
-export OPENWEATHER_API_KEY="ваш_openweather_api_key"
-```
-
-Получить ключи:
-- **Groq API** — https://console.groq.com
-- **OpenWeatherMap** — https://openweathermap.org/api
-
-### Смена голоса TTS
-
-В файле `tts.py` изменить значение переменной `VOICE`:
-
-| Значение | Описание |
-|---|---|
-| `ru-RU-SvetlanaNeural` | Женский голос (по умолчанию) |
-| `ru-RU-DmitryNeural` | Мужской голос |
-
-## Запуск
+Launch:
 
 ```bash
 python main.py
 ```
 
-После запуска ассистент произнесёт приветствие и начнёт слушать команды. Каждый цикл — 5 секунд записи. Для остановки нажать `Ctrl+C`.
+After launch, the assistant plays a greeting and enters listening mode. To activate a command, say the wake word "Voicebot" followed by your command. To stop the assistant, press `Ctrl+C`.
 
 ---
 
-## Модули
-
-### main.py
-
-Точка входа и главный цикл приложения.
-
-**`process_query(text: str) -> str`**
-
-Принимает распознанный текст, определяет intent через `parse_intent()`, извлекает нужные параметры и вызывает соответствующий навык. Возвращает текстовый ответ.
-
-```
-"привет"                → greeting
-"который час"           → get_time()
-"какое число"           → get_date()
-"погода в Москве"       → get_weather("Москва")
-"сколько будет 3 плюс 4"→ calculate("3 + 4")
-"напомни через 5 минут" → set_reminder(300, ...)
-```
-
-**`main()`**
-
-Главный цикл: инициализация → приветствие → цикл `listen() → process_query() → speak()`.
-
----
-
-### stt.py
-
-Модуль Speech-to-Text. Записывает аудио с микрофона и отправляет на распознавание.
-
-**Константы:**
-
-| Параметр | Значение |
-|---|---|
-| Sample rate | 16 000 Гц |
-| Channels | 1 (моно) |
-| Duration | 5 секунд |
-| Модель Whisper | `whisper-large-v3` |
-| Язык | `ru` |
-
-**`record_audio(duration: int = 5) -> str`**
-
-Записывает аудио через `sounddevice`, сохраняет во временный WAV-файл, возвращает путь к файлу.
-
-**`recognize_speech(audio_path: str) -> str`**
-
-Отправляет WAV-файл в Groq API (Whisper Large V3), возвращает распознанный текст. Удаляет временный файл после обработки.
-
-**`listen() -> str`**
-
-Объединяет `record_audio()` и `recognize_speech()`. Удобный метод для использования в главном цикле.
-
----
-
-### tts.py
-
-Модуль Text-to-Speech. Синтезирует речь и воспроизводит её.
-
-**Константы:**
-
-| Параметр | Значение |
-|---|---|
-| Голос | `ru-RU-SvetlanaNeural` |
-
-**`speak(text: str)`**
-
-Запускает асинхронный синтез и воспроизведение через `asyncio.run()`.
-
-**`async _synthesize_and_play(text: str)`**
-
-1. Генерирует MP3 через `edge-tts`
-2. Загружает в `pygame.mixer`
-3. Ждёт завершения воспроизведения
-4. Удаляет временный файл
-
----
-
-### parser.py
-
-Модуль определения намерений (intent) и извлечения параметров из текста.
-
-**Словарь ключевых слов `INTENTS`:**
-
-| Intent | Ключевые слова |
-|---|---|
-| `greeting` | привет, здравствуй, добрый день, добрый вечер, доброе утро, хай |
-| `time` | время, который час, сколько времени, часы |
-| `date` | дата, какое сегодня, какой день, число |
-| `weather` | погода, температура, на улице, за окном |
-| `calculate` | сколько будет, вычисли, посчитай, калькулятор, плюс, минус, умножить, разделить |
-| `reminder` | напомни, напоминание, через, минут, не забудь |
-
-**`parse_intent(text: str) -> str`**
-
-Приводит текст к нижнему регистру и проверяет наличие ключевых слов. Возвращает название intent или `"unknown"`.
-
-**`extract_city(text: str) -> str`**
-
-Ищет город в фразе паттерном `\bв\s+([А-ЯЁ][а-яё]+)`. По умолчанию возвращает `"Москва"`.
-
-**`extract_math_expression(text: str) -> str`**
-
-Удаляет командные фразы и заменяет русские слова на математические операторы:
-
-| Русское слово | Оператор |
-|---|---|
-| плюс | + |
-| минус | - |
-| умножить на | * |
-| разделить на | / |
-
-**`extract_reminder_params(text: str) -> tuple[int, str]`**
-
-Извлекает количество минут паттерном `через\s+(\d+)\s+минут`. Возвращает `(секунды, сообщение)`. По умолчанию — 1 минута.
-
----
-
-### skills/time_skill.py
-
-Навык получения текущего времени и даты.
-
-**`get_time() -> str`**
-
-Возвращает строку вида: `"Сейчас 14 часов 35 минут."`
-
-**`get_date() -> str`**
-
-Возвращает строку вида: `"Сегодня суббота, 22 февраля 2026 года."`
-
----
-
-### skills/weather.py
-
-Навык получения погоды через OpenWeatherMap API.
-
-**`get_weather(city: str = "Москва") -> str`**
-
-Делает запрос к OpenWeatherMap с параметрами `units=metric&lang=ru`. Возвращает строку вида:
-
-```
-"Погода в Москве: температура -5 градусов, облачно с прояснениями.
- Ветер 7 метров в секунду, влажность 80%."
-```
-
-При ошибке запроса возвращает сообщение об ошибке.
-
-Требует переменную окружения `OPENWEATHER_API_KEY`.
-
----
-
-### skills/calculator.py
-
-Навык вычисления математических выражений.
-
-**`calculate(expression: str) -> str`**
-
-1. Фильтрует строку, оставляя только цифры, операторы (`+`, `-`, `*`, `/`), точку и скобки
-2. Вычисляет через `eval()`
-3. Если результат целый — возвращает без дробной части
-
-Возвращает строку вида: `"Результат: 42"` или сообщение об ошибке при некорректном выражении.
-
----
-
-### skills/reminder.py
-
-Навык установки напоминаний с помощью фонового таймера.
-
-**`set_reminder(seconds: int, message: str, callback) -> str`**
-
-Создаёт `threading.Timer` на заданное число секунд. По истечении времени вызывает `callback(message)` — как правило, функцию `speak()`.
-
-Возвращает строку подтверждения вида: `"Хорошо, напомню через 5 минут."` Не блокирует главный поток.
-
----
-
-## Поток работы
-
-```
-1. Запуск main()
-        │
-        ▼
-2. speak("Привет! Я ваш голосовой ассистент.")
-        │
-        ▼
-3. text = listen()          ← запись 5 сек + Whisper
-        │
-        ▼
-4. response = process_query(text)
-        │
-        ├─ parse_intent(text) → intent
-        │
-        └─ в зависимости от intent:
-            greeting   → "Привет!"
-            time       → get_time()
-            date       → get_date()
-            weather    → extract_city() → get_weather()
-            calculate  → extract_math_expression() → calculate()
-            reminder   → extract_reminder_params() → set_reminder()
-            unknown    → "Не понял команду."
-        │
-        ▼
-5. speak(response)
-        │
-        ▼
-6. Перейти к шагу 3
-```
-
----
-
-## Навыки (Skills)
-
-Каждый навык — отдельный файл в папке `skills/`. Для добавления нового навыка:
-
-1. Создать файл `skills/my_skill.py` с функцией, возвращающей строку.
-2. Добавить ключевые слова в словарь `INTENTS` в `parser.py`.
-3. Добавить ветку обработки в `process_query()` в `main.py`.
-
----
-
-## Зависимости
-
-| Пакет | Назначение |
-|---|---|
-| `groq` | Клиент Groq API для Whisper STT |
-| `edge-tts` | Синтез речи с нейронными голосами Microsoft |
-| `pygame` | Воспроизведение аудио |
-| `sounddevice` | Запись с микрофона |
-| `numpy` | Обработка аудио-массивов |
-| `requests` | HTTP-запросы к OpenWeatherMap |
-
-Стандартная библиотека: `asyncio`, `threading`, `wave`, `tempfile`, `datetime`, `re`, `os`.
+## 6. References
+
+1. Groq API Documentation. Whisper Speech Recognition – https://console.groq.com/docs/speech-text.
+2. rany2. edge-tts - Python library for Microsoft Edge TTS – https://github.com/rany2/edge-tts.
+3. Radford A. et al. Whisper: Robust Speech Recognition via Large-Scale Weak Supervision. OpenAI, 2022 – https://arxiv.org/abs/2212.04356.
+4. Pygame Documentation. pygame.mixer - Sound and Music – https://www.pygame.org/docs/ref/mixer.html.
+5. SoundDevice Documentation. Python bindings for PortAudio – https://python-sounddevice.readthedocs.io.
+6. OpenWeatherMap API. Current Weather Data – https://openweathermap.org/current.
+7. Python Software Foundation. asyncio - Asynchronous I/O. Python 3 Documentation – https://docs.python.org/3/library/asyncio.html.
+8. Lutz M. Learning Python. 5th ed. O'Reilly Media, 2013. 1540 p.
