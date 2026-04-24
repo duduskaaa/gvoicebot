@@ -1,6 +1,7 @@
 groq
 edge-tts
-pygame
+miniaudio
 sounddevice
 numpy
 requests
+PySide6

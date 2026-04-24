@@ -1,10 +1,12 @@
-
+import re
 
 INTENTS = {
     "greeting": ["hello", "hi", "good morning", "good evening", "hey", "greetings"],
     "time": ["time", "what time", "current time", "clock"],
     "date": ["date", "what day", "today", "what is today"],
     "weather": ["weather", "temperature", "outside"],
+    "calculator": ["calculate", "compute", "how much is", "what is", "equals"],
+    "reminder": ["remind me", "set a reminder", "reminder in"],
 }
 
 
@@ -20,9 +22,7 @@ def parse_intent(text):
 
 
 def extract_city(text):
-    words = text.split()
-    if "in" in words:
-        idx = words.index("in")
-        if idx + 1 < len(words):
-            return words[idx + 1].capitalize()
+    match = re.search(r"\bin\s+([A-Za-z]+)", text)
+    if match:
+        return match.group(1).capitalize()
     return "Almaty"
