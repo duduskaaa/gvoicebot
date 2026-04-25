@@ -20,22 +20,27 @@ class AssistantThread(QThread):
         self._manual_event.set()
 
     def run(self):
-        speak("Voice assistant started. Say Voicebot to activate.")
+        speak("Voice assistant started. Say Voice to activate.")
 
         while True:
             self.state_changed.emit(AssistantState.WAKE)
 
+            inline = ""
             if self._manual_event.is_set():
                 self._manual_event.clear()
-            elif not listen_for_wake_word():
-                continue
+            else:
+                detected, inline = listen_for_wake_word()
+                if not detected:
+                    continue
 
-            speak("Yes?")
-
-            self.state_changed.emit(AssistantState.COMMAND)
-            text = listen()
-            if not text:
-                continue
+            if inline:
+                text = inline
+            else:
+                speak("Yes?")
+                self.state_changed.emit(AssistantState.COMMAND)
+                text = listen()
+                if not text:
+                    continue
 
             self.message_added.emit("user", text)
 

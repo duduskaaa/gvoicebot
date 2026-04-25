@@ -1,48 +1,42 @@
 import re
 import threading
 
+from skills.base import Skill
+
 _PATTERN = re.compile(
     r"in\s+(\d+)\s*(seconds|second|minutes|minute|hours|hour)",
     re.IGNORECASE,
 )
-
-_UNITS_TO_SECONDS = {
+_UNITS = {
     "second": 1, "seconds": 1,
     "minute": 60, "minutes": 60,
     "hour": 3600, "hours": 3600,
 }
 
 
-def parse_reminder(text: str):
-    match = _PATTERN.search(text)
-    if not match:
-        return None, None
+class ReminderSkill(Skill):
+    keywords = ["remind me", "set a reminder", "reminder in"]
 
-    amount = int(match.group(1))
-    unit = match.group(2).lower()
-    seconds = amount * _UNITS_TO_SECONDS[unit]
+    def execute(self, text: str) -> str:
+        match = _PATTERN.search(text)
+        if not match:
+            return "Please say how long: for example, remind me in 5 minutes to check the oven."
 
-    message = text[match.end():].strip()
-    if not message:
-        message = "Time is up!"
+        seconds = int(match.group(1)) * _UNITS[match.group(2).lower()]
+        message = text[match.end():].strip() or "Time is up!"
 
-    return seconds, message
+        self._schedule(seconds, message)
 
+        if seconds >= 3600:
+            v, u = seconds // 3600, "hour"
+        elif seconds >= 60:
+            v, u = seconds // 60, "minute"
+        else:
+            v, u = seconds, "second"
+        if v != 1:
+            u += "s"
+        return f"Got it, I will remind you in {v} {u}."
 
-def set_reminder(seconds: int, message: str, callback) -> str:
-    def _remind():
-        callback(f"Reminder: {message}")
-
-    threading.Timer(seconds, _remind).start()
-
-    if seconds >= 3600:
-        value = seconds // 3600
-        unit = "hour" if value == 1 else "hours"
-    elif seconds >= 60:
-        value = seconds // 60
-        unit = "minute" if value == 1 else "minutes"
-    else:
-        value = seconds
-        unit = "second" if value == 1 else "seconds"
-
-    return f"Got it, I will remind you in {value} {unit}."
+    def _schedule(self, seconds: int, message: str) -> None:
+        from tts import speak
+        threading.Timer(seconds, lambda: speak(f"Reminder: {message}")).start()

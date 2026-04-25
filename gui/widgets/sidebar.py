@@ -4,6 +4,16 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QApplication, QPushButton, QVBoxLayout, QWidget
 
 
+def _sidebar_btn(icon: str, tooltip: str, callback, name: str = "sidebar_btn") -> QPushButton:
+    btn = QPushButton(icon)
+    btn.setObjectName(name)
+    btn.setFixedSize(36, 36)
+    btn.setCursor(Qt.CursorShape.PointingHandCursor)
+    btn.setToolTip(tooltip)
+    btn.clicked.connect(callback)
+    return btn
+
+
 class SidebarWidget(QWidget):
     settings_requested = Signal()
 
@@ -18,19 +28,5 @@ class SidebarWidget(QWidget):
         layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
 
         layout.addStretch()
-
-        settings_btn = QPushButton("⚙")
-        settings_btn.setObjectName("sidebar_btn")
-        settings_btn.setFixedSize(36, 36)
-        settings_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        settings_btn.setToolTip("Settings")
-        settings_btn.clicked.connect(self.settings_requested)
-        layout.addWidget(settings_btn)
-
-        exit_btn = QPushButton("✕")
-        exit_btn.setObjectName("exit_btn")
-        exit_btn.setFixedSize(36, 36)
-        exit_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        exit_btn.setToolTip("Exit")
-        exit_btn.clicked.connect(QApplication.quit)
-        layout.addWidget(exit_btn)
+        layout.addWidget(_sidebar_btn("⚙", "Settings", self.settings_requested))
+        layout.addWidget(_sidebar_btn("✕", "Exit", QApplication.quit, name="exit_btn"))

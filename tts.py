@@ -7,7 +7,7 @@ import miniaudio
 import numpy as np
 import sounddevice as sd
 
-VOICE = "ru-RU-SvetlanaNeural"
+VOICE = "en-US-JennyNeural"
 
 
 def speak(text):

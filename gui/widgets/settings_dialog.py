@@ -39,19 +39,13 @@ class SettingsDialog(QDialog):
         layout.addWidget(buttons)
 
     def _save(self):
-        updates: dict[str, str] = {}
-
-        groq = self._groq.text().strip()
-        if groq:
-            os.environ["GROQ_API"] = groq
-            updates["GROQ_API"] = groq
-
-        weather = self._weather.text().strip()
-        if weather:
-            os.environ["OPENWEATHER_API"] = weather
-            updates["OPENWEATHER_API"] = weather
-
+        updates = {
+            key: value
+            for key, widget in [("GROQ_API", self._groq), ("OPENWEATHER_API", self._weather)]
+            if (value := widget.text().strip())
+        }
+        for key, value in updates.items():
+            os.environ[key] = value
         if updates:
             save_env(updates)
-
         self.accept()

@@ -25,7 +25,7 @@ QFrame#status_frame {
     border-radius: 8px;
 }
 
-QPushButton#activate_btn {
+QPushButton#activate_btn, QPushButton#send_btn {
     background-color: #8AADF4;
     color: #1E2030;
     border: none;
@@ -33,11 +33,11 @@ QPushButton#activate_btn {
     font-weight: bold;
 }
 
-QPushButton#activate_btn:hover {
+QPushButton#activate_btn:hover, QPushButton#send_btn:hover {
     background-color: #B7BDF8;
 }
 
-QPushButton#activate_btn:pressed {
+QPushButton#activate_btn:pressed, QPushButton#send_btn:pressed {
     background-color: #91D7E3;
 }
 
