@@ -2,6 +2,10 @@ from datetime import datetime
 
 from skills.base import Skill
 
+_DAYS = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+_MONTHS = ("", "January", "February", "March", "April", "May", "June",
+           "July", "August", "September", "October", "November", "December")
+
 
 class TimeSkill(Skill):
     keywords = ["time", "what time", "current time", "clock"]
@@ -16,4 +20,4 @@ class DateSkill(Skill):
 
     def execute(self, text: str) -> str:
         now = datetime.now()
-        return f"Today is {now.strftime('%A, %B %-d, %Y')}."
+        return f"Today is {_DAYS[now.weekday()]}, {_MONTHS[now.month]} {now.day}, {now.year}."

@@ -259,20 +259,20 @@ clear history
 
 **Main window**
 
-[ВСТАВИТЬ ФОТО: Главное окно приложения с чатом и кнопками]
+![Main window](assets/screenshot_main.png)
 
 **Voice activation — WAKE state**
 
-[ВСТАВИТЬ ФОТО: Статус-бар в состоянии WAKE (фиолетовый бейдж)]
+![WAKE state](assets/screenshot_wake.png)
 
 **Recording — REC state**
 
-[ВСТАВИТЬ ФОТО: Статус-бар в состоянии REC (красный бейдж)]
+![REC state](assets/screenshot_rec.png)
 
 **Conversation example**
 
-[ВСТАВИТЬ ФОТО: Диалог в чате — несколько команд и ответов]
+![Conversation](assets/screenshot_chat.png)
 
 **Settings dialog**
 
-[ВСТАВИТЬ ФОТО: Диалог настроек с полями для API-ключей]
+![Settings](assets/screenshot_settings.png)
