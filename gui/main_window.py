@@ -18,8 +18,12 @@ class _TextWorker(QThread):
         self._text = text
 
     def run(self):
+        from db import save_message
         from main import process_query
-        self.finished.emit(process_query(self._text))
+        save_message("user", self._text)
+        _, display = process_query(self._text)
+        save_message("bot", display)
+        self.finished.emit(display)
 
 
 class MainWindow(QMainWindow):

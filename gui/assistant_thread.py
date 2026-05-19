@@ -2,15 +2,16 @@ import threading
 
 from PySide6.QtCore import QThread, Signal
 
+from db import save_message
 from gui.state import AssistantState
+from main import process_query
 from stt import listen, listen_for_wake_word
 from tts import speak
-from main import process_query
 
 
 class AssistantThread(QThread):
     state_changed = Signal(AssistantState)
-    message_added = Signal(str, str)  # role, text
+    message_added = Signal(str, str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -43,10 +44,15 @@ class AssistantThread(QThread):
                     continue
 
             self.message_added.emit("user", text)
+            save_message("user", text)
 
             self.state_changed.emit(AssistantState.PROCESSING)
-            response = process_query(text)
+            voice, display = process_query(text)
 
             self.state_changed.emit(AssistantState.SPEAKING)
-            self.message_added.emit("bot", response)
-            speak(response)
+            self.message_added.emit("bot", display)
+            save_message("bot", display)
+            if voice is None:
+                speak(display)
+            elif voice:
+                speak(voice)

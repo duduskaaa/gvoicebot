@@ -1,16 +1,16 @@
-import re
-import sounddevice as sd
-import numpy as np
-import wave
 import os
+import re
+import wave
+
+import numpy as np
+import sounddevice as sd
 from groq import Groq
 
-SAMPLE_RATE = 44100
 CHANNELS = 1
 DURATION = 5
 WAKE_WORD_DURATION = 3
 WAKE_WORD = "voice"
-SILENCE_THRESHOLD = 2000  # RMS below this is treated as silence
+SILENCE_THRESHOLD = 2000
 
 
 def _record(duration):
@@ -66,11 +66,6 @@ def listen() -> str:
 
 
 def listen_for_wake_word():
-    """Returns (detected: bool, inline_command: str).
-
-    Inline command is non-empty when the user says 'Voice, <command>'
-    in a single utterance, e.g. 'Voice, what time is it'.
-    """
     audio, rate = _record(WAKE_WORD_DURATION)
     if _is_silent(audio):
         return False, ""
@@ -82,6 +77,5 @@ def listen_for_wake_word():
     if WAKE_WORD not in text:
         return False, ""
 
-    # Strip the wake word (and optional punctuation/space) to get inline command
     after = re.sub(rf".*\b{WAKE_WORD}\b[,\s.!?]*", "", text).strip(".,!? ")
     return True, after

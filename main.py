@@ -1,11 +1,13 @@
 from assistant import Assistant
-from skills.greeting import GreetingSkill
-from skills.time_skill import TimeSkill, DateSkill
-from skills.weather import WeatherSkill
 from skills.calculator import CalculatorSkill
+from skills.greeting import GreetingSkill
+from skills.history import HistorySkill
 from skills.reminder import ReminderSkill
+from skills.time_skill import DateSkill, TimeSkill
+from skills.weather import WeatherSkill
 
 _assistant = Assistant([
+    HistorySkill(),
     GreetingSkill(),
     TimeSkill(),
     DateSkill(),
@@ -15,7 +17,7 @@ _assistant = Assistant([
 ])
 
 
-def process_query(text: str) -> str:
+def process_query(text: str) -> tuple[str | None, str]:
     return _assistant.process(text)
 
 

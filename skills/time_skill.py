@@ -1,4 +1,3 @@
-import calendar
 from datetime import datetime
 
 from skills.base import Skill
@@ -17,4 +16,4 @@ class DateSkill(Skill):
 
     def execute(self, text: str) -> str:
         now = datetime.now()
-        return f"Today is {calendar.day_name[now.weekday()]}, {calendar.month_name[now.month]} {now.day}, {now.year}."
+        return f"Today is {now.strftime('%A, %B %-d, %Y')}."
