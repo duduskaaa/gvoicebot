@@ -27,8 +27,13 @@ class SettingsDialog(QDialog):
         self._weather.setEchoMode(QLineEdit.EchoMode.Password)
         self._weather.setPlaceholderText("Enter OpenWeatherMap key")
 
+        self._news = QLineEdit(os.environ.get("NEWS_API", ""))
+        self._news.setEchoMode(QLineEdit.EchoMode.Password)
+        self._news.setPlaceholderText("Enter NewsAPI key")
+
         form.addRow("GROQ_API:", self._groq)
         form.addRow("OPENWEATHER_API:", self._weather)
+        form.addRow("NEWS_API:", self._news)
         layout.addLayout(form)
 
         buttons = QDialogButtonBox(
@@ -41,7 +46,7 @@ class SettingsDialog(QDialog):
     def _save(self):
         updates = {
             key: value
-            for key, widget in [("GROQ_API", self._groq), ("OPENWEATHER_API", self._weather)]
+            for key, widget in [("GROQ_API", self._groq), ("OPENWEATHER_API", self._weather), ("NEWS_API", self._news)]
             if (value := widget.text().strip())
         }
         for key, value in updates.items():

@@ -19,7 +19,7 @@ def _connect() -> sqlite3.Connection:
             role      TEXT    NOT NULL,
             text      TEXT    NOT NULL
         )
-    """)
+    """) #
     conn.commit()
     return conn
 
@@ -29,7 +29,7 @@ def save_message(role: str, text: str) -> None:
         conn.execute("INSERT INTO messages (role, text) VALUES (?, ?)", (role, text))
 
 
-def get_history(limit: int = 20) -> list[tuple[str, str, str]]:
+def get_history(limit: int = 20) -> list[tuple[str, str, str]]: #
     with _connect() as conn:
         cur = conn.execute(
             "SELECT timestamp, role, text FROM messages ORDER BY id DESC LIMIT ?",
@@ -38,7 +38,7 @@ def get_history(limit: int = 20) -> list[tuple[str, str, str]]:
         return list(reversed(cur.fetchall()))
 
 
-def get_today_history() -> list[tuple[str, str, str]]:
+def get_today_history() -> list[tuple[str, str, str]]: #
     with _connect() as conn:
         cur = conn.execute(
             "SELECT timestamp, role, text FROM messages"

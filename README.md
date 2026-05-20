@@ -22,12 +22,17 @@ GVoiceBot is a desktop voice assistant built with Python. It listens for a wake 
 
 ## Installation
 
-**Requirements:** Python 3.10 or higher. On Linux, PortAudio must be installed:
+**Requirements:** Python 3.10 or higher.
+
+PortAudio is required for audio input. Install it before running `pip install`:
 
 ```bash
-sudo pacman -S portaudio        # Arch
+sudo pacman -S portaudio        # Arch Linux
 sudo apt install libportaudio2  # Debian / Ubuntu
+brew install portaudio          # macOS
 ```
+
+On Windows, PortAudio is bundled with `sounddevice` — no separate installation needed.
 
 **Steps:**
 
@@ -35,7 +40,18 @@ sudo apt install libportaudio2  # Debian / Ubuntu
 git clone <repo-url>
 cd gvoicebot
 python -m venv .venv
-source .venv/bin/activate
+```
+
+Activate the virtual environment:
+
+```bash
+source .venv/bin/activate        # Linux / macOS
+.venv\Scripts\activate           # Windows
+```
+
+Install dependencies:
+
+```bash
 pip install -r requirements.txt
 ```
 

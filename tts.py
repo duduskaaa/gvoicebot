@@ -7,7 +7,14 @@ import miniaudio
 import numpy as np
 import sounddevice as sd
 
-VOICE = "en-US-JennyNeural"
+VOICE = "en-US-JennyNeural" #
+
+
+def beep(frequency: int = 880, duration: float = 0.15): #
+    rate = 44100
+    t = np.linspace(0, duration, int(rate * duration), endpoint=False)
+    wave = (np.sin(2 * np.pi * frequency * t) * 16000).astype(np.int16)
+    sd.play(wave, rate, blocking=True)
 
 
 def speak(text):

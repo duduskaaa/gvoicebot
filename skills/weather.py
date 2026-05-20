@@ -9,7 +9,7 @@ _BASE_URL = "https://api.openweathermap.org/data/2.5/weather"
 
 
 class WeatherSkill(Skill):
-    keywords = ["weather", "temperature", "outside"]
+    keywords = ["weather", "temperature", "outside", "weiser", "wazer"]
 
     def execute(self, text: str) -> str:
         city = self._extract_city(text)

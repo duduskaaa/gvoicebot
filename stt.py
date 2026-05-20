@@ -3,28 +3,26 @@ import re
 import wave
 
 import numpy as np
-import sounddevice as sd
-from groq import Groq
+import sounddevice as sd #
+from groq import Groq #
 
 CHANNELS = 1
-DURATION = 5
+DURATION = 3
 WAKE_WORD_DURATION = 3
 WAKE_WORD = "voice"
-SILENCE_THRESHOLD = 2000
+SILENCE_THRESHOLD = 500
 
 
-def _record(duration):
-    print(f"🎤 Recording {duration} seconds...")
-    device = sd.query_devices(kind="input")
-    native_rate = int(device["default_samplerate"])
-    audio = sd.rec(
-        int(duration * native_rate),
-        samplerate=native_rate,
-        channels=CHANNELS,
-        dtype=np.int16,
-    )
+def _get_rate() -> int:
+    return int(sd.query_devices(kind="input")["default_samplerate"])
+
+
+def _record(duration: float) -> tuple[np.ndarray, int]:
+    print(f"🎤 Recording {duration}s...")
+    rate = _get_rate()
+    audio = sd.rec(int(duration * rate), samplerate=rate, channels=CHANNELS, dtype=np.int16) #
     sd.wait()
-    return audio, native_rate
+    return audio, rate
 
 
 def _is_silent(audio: np.ndarray) -> bool:
@@ -32,7 +30,7 @@ def _is_silent(audio: np.ndarray) -> bool:
     return rms < SILENCE_THRESHOLD
 
 
-def _save_wav(audio: np.ndarray, rate: int) -> str:
+def _save_wav(audio: np.ndarray, rate: int) -> str: #
     audio_path = "audio.wav"
     with wave.open(audio_path, "wb") as wf:
         wf.setnchannels(CHANNELS)
@@ -42,7 +40,7 @@ def _save_wav(audio: np.ndarray, rate: int) -> str:
     return audio_path
 
 
-def _transcribe(audio_path: str) -> str:
+def _transcribe(audio_path: str) -> str: #
     client = Groq(api_key=os.environ.get("GROQ_API"))
     with open(audio_path, "rb") as f:
         transcription = client.audio.transcriptions.create(

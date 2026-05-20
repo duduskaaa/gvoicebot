@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=GVoiceBot
+Comment=Python voice assistant
+Exec=/home/khatep/Pet/langs/Py/gvoicebot/run.sh
+Path=/home/khatep/Pet/langs/Py/gvoicebot
+Icon=/home/khatep/Pet/langs/Py/gvoicebot/assets/icon.png
+Terminal=false
+Categories=Utility;

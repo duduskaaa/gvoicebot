@@ -1,12 +1,12 @@
 import threading
 
-from PySide6.QtCore import QThread, Signal
+from PySide6.QtCore import QThread, Signal #
 
 from db import save_message
 from gui.state import AssistantState
 from main import process_query
-from stt import listen, listen_for_wake_word
-from tts import speak
+from stt import listen, listen_for_wake_word #
+from tts import speak #
 
 
 class AssistantThread(QThread):
@@ -21,20 +21,18 @@ class AssistantThread(QThread):
         self._manual_event.set()
 
     def run(self):
-        speak("Voice assistant started. Say Voice to activate.")
-
-        while True:
-            self.state_changed.emit(AssistantState.WAKE)
+        while True: #
+            self.state_changed.emit(AssistantState.WAKE) #
 
             inline = ""
             if self._manual_event.is_set():
                 self._manual_event.clear()
             else:
-                detected, inline = listen_for_wake_word()
+                detected, inline = listen_for_wake_word() #
                 if not detected:
                     continue
 
-            if inline:
+            if inline: #
                 text = inline
             else:
                 speak("Yes?")
@@ -43,16 +41,16 @@ class AssistantThread(QThread):
                 if not text:
                     continue
 
-            self.message_added.emit("user", text)
+            self.message_added.emit("user", text) #
             save_message("user", text)
 
-            self.state_changed.emit(AssistantState.PROCESSING)
-            voice, display = process_query(text)
+            self.state_changed.emit(AssistantState.PROCESSING) #
+            voice, display = process_query(text) #
 
-            self.state_changed.emit(AssistantState.SPEAKING)
+            self.state_changed.emit(AssistantState.SPEAKING) #
             self.message_added.emit("bot", display)
             save_message("bot", display)
-            if voice is None:
+            if voice is None: #
                 speak(display)
             elif voice:
                 speak(voice)

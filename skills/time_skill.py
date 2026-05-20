@@ -8,7 +8,7 @@ _MONTHS = ("", "January", "February", "March", "April", "May", "June",
 
 
 class TimeSkill(Skill):
-    keywords = ["time", "what time", "current time", "clock"]
+    keywords = ["time", "what time", "current time", "clock"] #
 
     def execute(self, text: str) -> str:
         now = datetime.now()

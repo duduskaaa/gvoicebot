@@ -3,8 +3,15 @@ import threading
 
 from skills.base import Skill
 
+_WORDS = {
+    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+    "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+    "eleven": 11, "twelve": 12, "fifteen": 15, "twenty": 20,
+    "thirty": 30, "forty": 40, "forty-five": 45, "sixty": 60,
+}
+
 _PATTERN = re.compile(
-    r"in\s+(\d+)\s*(seconds|second|minutes|minute|hours|hour)",
+    r"in\s+(\d+|" + "|".join(_WORDS) + r")\s*(seconds|second|minutes|minute|hours|hour)",
     re.IGNORECASE,
 )
 _UNITS = {
@@ -15,14 +22,16 @@ _UNITS = {
 
 
 class ReminderSkill(Skill):
-    keywords = ["remind me", "set a reminder", "reminder in"]
+    keywords = ["remind me", "remind in", "set a reminder", "reminder in"]
 
     def execute(self, text: str) -> str:
         match = _PATTERN.search(text)
         if not match:
             return "Please say how long: for example, remind me in 5 minutes to check the oven."
 
-        seconds = int(match.group(1)) * _UNITS[match.group(2).lower()]
+        raw = match.group(1).lower()
+        amount = _WORDS.get(raw) or int(raw)
+        seconds = amount * _UNITS[match.group(2).lower()]
         message = text[match.end():].strip() or "Time is up!"
 
         self._schedule(seconds, message)

@@ -13,4 +13,4 @@ class Skill(ABC):
         )
 
     @abstractmethod
-    def execute(self, text: str) -> str: ...
+    def execute(self, text: str) -> str: ... #
